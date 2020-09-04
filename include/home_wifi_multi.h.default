@@ -1,0 +1,3 @@
+// Secret file, put it into gitignore
+#define SSID1 "your SSID name put here"
+#define PWD1 "password for SSID put here"
