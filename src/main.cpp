@@ -40,6 +40,8 @@ void BlinkerTask::setup() {
       destroy();
     }
   }
+  *_blinker = Blinker::BLINK_PWM; // фиксированный уровень
+  *_blinker<<16;
 }
 
 void BlinkerTask::Demo()
@@ -60,8 +62,8 @@ void BlinkerTask::Demo()
 }
 
 void BlinkerTask::loop() {
-  // *_blinker = Blinker::BLINK_PWM;
-  Demo();
+  // *_blinker = Blinker::BLINK_PWM; // фиксированный уровень
+  // Demo();
   vTaskDelay(pdMS_TO_TICKS(5000));
 }
 

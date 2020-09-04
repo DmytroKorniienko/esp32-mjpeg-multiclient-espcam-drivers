@@ -17,10 +17,14 @@ public:
   void operator=(blinkmode_t value) {
     setMode(value);
   }
+  void operator<<(int8_t value) {
+    setValue(value);
+  }
   blinkmode_t getMode() const {
     return _mode;
   }
   void setMode(blinkmode_t mode);
+  void setValue(int8_t value) { _value=value; };
 
 protected:
   void timerCallback();
