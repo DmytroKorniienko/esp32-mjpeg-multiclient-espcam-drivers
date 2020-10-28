@@ -1,3 +1,5 @@
+#ifndef __TASK_H
+#define __TASK_H
 #pragma once
 
 #include <freertos/FreeRTOS.h>
@@ -14,6 +16,7 @@ public:
   virtual ~Task() {
     destroy();
   }
+  static void halt(const char *msg);
 
   operator bool() {
     return _task != NULL;
@@ -40,3 +43,7 @@ protected:
   EventGroupHandle_t _flags;
   TaskHandle_t _task;
 };
+
+extern Task *task;
+
+#endif

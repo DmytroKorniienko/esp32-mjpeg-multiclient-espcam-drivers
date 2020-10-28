@@ -3,6 +3,16 @@
 
 static const char TAG[] = "Task";
 
+Task *task = NULL;
+
+void Task::halt(const char *msg) {
+  if (task)
+    delete task;
+  Serial.println(msg);
+  Serial.flush();
+  esp_deep_sleep_start();
+}
+
 Task::Task(const char *name, uint32_t stack, uint8_t priority, core_t core) {
   BaseType_t result;
 

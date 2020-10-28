@@ -1,6 +1,14 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#include <FS.h>
+#ifdef USE_LittleFS
+  #define SPIFFS LITTLEFS
+  #include <LITTLEFS.h> 
+#else
+  #include <SPIFFS.h>
+#endif 
+
 #include <arduino.h>
 
 /*
@@ -66,8 +74,14 @@
 #include "home_wifi_multi.h"
 
 #include "Blinker.h"
+#include "blinkerTask.h"
 #include "Task.h"
-
+#include <ArduinoJson.h>
+#include <string.h>
+#include "EmbUI.h"
+#ifdef USE_FTP
+#include "ftpSrv.h"
+#endif
 // We will try to achieve 24 FPS frame rate
 const int FPS = 24;
 
@@ -78,11 +92,14 @@ const int WSINTERVAL = 100;
 
 void camCB(void* pvParameters);
 void streamCB(void * pvParameters);
-void handleJPGSstream(void);
-void handleJPG(void);
-void handleNotFound();
+void handleJPGSstream(AsyncWebServerRequest *request);
+void handleJPG(AsyncWebServerRequest *request);
+void handleNotFound(AsyncWebServerRequest *request);
 char* allocateMemory(char* aPtr, size_t aSize);
 void mjpegCB(void* pvParameters);
+
+void create_parameters();
+void sync_parameters();
 
 extern SemaphoreHandle_t frameSync;
 extern WebServer server;

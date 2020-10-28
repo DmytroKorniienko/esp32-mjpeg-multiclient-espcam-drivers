@@ -1,97 +1,25 @@
+//#define __IDPREFIX F("EmbUI-")
 #include "main.h"
 
-WebServer server(80);
 
 // ===== rtos task handles =========================
 // Streaming is implemented with 3 tasks:
 TaskHandle_t tMjpeg;   // handles client connections to the webserver
 TaskHandle_t tCam;     // handles getting picture frames from the camera and storing them locally
-
 uint8_t       noActiveClients;       // number of active clients
-
 // frameSync semaphore is used to prevent streaming buffer as it is replaced with the next frame
 SemaphoreHandle_t frameSync = NULL;
-
-class BlinkerTask : public Task {
-public:
-  BlinkerTask(uint8_t pin, bool level) : Task("BlinkerTask", 1024), _blinker(NULL), _pin(pin), _level(level) {}
-  void Demo();
-
-protected:
-  void setup();
-  void loop();
-  void cleanup();
-
-  struct __attribute__((__packed__)) {
-    Blinker *_blinker;
-    uint8_t _pin : 7;
-    bool _level : 1;
-  };
-};
-
-void BlinkerTask::setup() {
-  if (_task) {
-    _blinker = new Blinker(_pin, _level);
-    if ((! _blinker) || (! *_blinker)) {
-      if (_blinker) {
-        delete _blinker;
-        _blinker= NULL;
-      }
-      destroy();
-    }
-  }
-  *_blinker = Blinker::BLINK_PWM; // фиксированный уровень
-  *_blinker<<16;
-}
-
-void BlinkerTask::Demo()
-{
-  const char *BLINKS[] = { "OFF", "ON", "TOGGLE", "0.5 Hz", "1 Hz", "2 Hz", "4 Hz", "FADE IN", "FADE OUT", "FADE IN/OUT", "PWM" };
-
-  Blinker::blinkmode_t mode = _blinker->getMode();
-
-  if (mode < Blinker::BLINK_PWM)
-    mode = (Blinker::blinkmode_t)((uint8_t)mode + 1);
-  else
-    mode = Blinker::BLINK_OFF;
-  *_blinker = mode;
-  lock();
-  Serial.print("Blinker switch to ");
-  Serial.println(BLINKS[mode]);
-  unlock();
-}
-
-void BlinkerTask::loop() {
-  // *_blinker = Blinker::BLINK_PWM; // фиксированный уровень
-  // Demo();
-  vTaskDelay(pdMS_TO_TICKS(5000));
-}
-
-void BlinkerTask::cleanup() {
-  if (_blinker) {
-    delete _blinker;
-    _blinker = NULL;
-  }
-}
-
-Task *task = NULL;
-
-static void halt(const char *msg) {
-  if (task)
-    delete task;
-  Serial.println(msg);
-  Serial.flush();
-  esp_deep_sleep_start();
-}
 
 // ==== SETUP method ==================================================================
 void setup()
 {
-
   // Setup Serial connection:
   Serial.begin(115200);
   delay(1000); // wait for a second to let Serial connect
   Serial.printf("setup: free heap  : %d\n", ESP.getFreeHeap());
+
+  LOG(println,"Проверка тут");
+  //embui.mqtt(embui.param(F("m_host")), embui.param(F("m_port")).toInt(), embui.param(F("m_user")), embui.param(F("m_pass")), mqttCallback, true); // false - никакой автоподписки!!!
 
 #if defined(CAMERA_MODEL_AI_THINKER)
   // // включу светодиод
@@ -99,7 +27,7 @@ void setup()
   // digitalWrite(GPIO_NUM_4, HIGH);
   task = new BlinkerTask(LED_PIN, LED_LEVEL);
   if ((! task) || (! *task))
-    halt("Error initializing blinker task!");
+    Task::halt("Error initializing blinker task!");
 #endif
 
   // Configure the camera
@@ -191,25 +119,7 @@ void setup()
     ESP.restart();
   }
 
-
-  //  Configure and connect to WiFi
-  IPAddress ip;
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID1, PWD1);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(F("."));
-  }
-  ip = WiFi.localIP();
-  Serial.println(F("WiFi connected"));
-  Serial.println("");
-  Serial.print("Stream Link: http://");
-  Serial.print(ip);
-  Serial.println("/mjpeg/1");
-
+  // Serial.println("/mjpeg/1");
 
   // Start mainstreaming RTOS task
   xTaskCreatePinnedToCore(
@@ -222,11 +132,21 @@ void setup()
     APP_CPU);
 
   Serial.printf("setup complete: free heap  : %d\n", ESP.getFreeHeap());
+
+  embui.init();
+  create_parameters(); // создаем дефолтные параметры, отсутствующие в текущем загруженном конфиге
+#ifdef USE_FTP
+  ftp_setup(); // запуск ftp-сервера
+#endif
+  //sync_parameters();
+  embui.begin(); // Инициализируем EmbUI фреймворк.
 }
 
 void loop() {
+  //embui.handle(); // цикл, необходимый фреймворку
   // this seems to be necessary to let IDLE task run and do GC
-  vTaskDelay(10000);
+  // vTaskDelay(10000);
+  vTaskDelay(10);
   // // переключу светодиод
   // digitalWrite(GPIO_NUM_4, !digitalRead(GPIO_NUM_4));
 }

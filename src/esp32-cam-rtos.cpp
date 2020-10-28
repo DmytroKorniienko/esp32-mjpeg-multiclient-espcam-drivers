@@ -22,12 +22,13 @@ void mjpegCB(void* pvParameters) {
     PRO_CPU);     // core
 
   //  Registering webserver handling routines
-  server.on("/mjpeg/1", HTTP_GET, handleJPGSstream);
-  server.on("/jpg", HTTP_GET, handleJPG);
-  server.onNotFound(handleNotFound);
-
-  //  Starting webserver
-  server.begin();
+  //embui.server.end();  
+  embui.server.on("/mjpeg/1", HTTP_GET, handleJPGSstream);
+  embui.server.on("/jpg", HTTP_GET, handleJPG);
+  embui.server.onNotFound(handleNotFound);
+  //embui.server.begin();
+  // //  Starting webserver
+  // server.begin();
 
   noActiveClients = 0;
 
@@ -35,7 +36,7 @@ void mjpegCB(void* pvParameters) {
   //=== loop() section  ===================
   xLastWakeTime = xTaskGetTickCount();
   for (;;) {
-    server.handleClient();
+    //embui.server.handleClient();
 
     //  After every server client handling request, we let other tasks run and then pause
     taskYIELD();
@@ -154,14 +155,14 @@ const int cntLen = strlen(CTNTTYPE);
 
 struct streamInfo {
   uint32_t        frame;
-  WiFiClient      client;
+  AsyncClient    *client;
   TaskHandle_t    task;
   char*           buffer;
   size_t          len;
 };
 
 // ==== Handle connection request from clients ===============================
-void handleJPGSstream(void)
+void handleJPGSstream(AsyncWebServerRequest *request)
 {
   if ( noActiveClients >= MAX_CLIENTS ) return;
   Serial.printf("handleJPGSstream start: free heap  : %d\n", ESP.getFreeHeap());
@@ -169,7 +170,7 @@ void handleJPGSstream(void)
   streamInfo* info = new streamInfo;
 
   info->frame = frameNumber - 1;
-  info->client = server.client();
+  info->client = request->client();
   info->buffer = NULL;
   info->len = 0;
 
@@ -208,8 +209,8 @@ void streamCB(void * pvParameters) {
     Serial.println("streamCB: a NULL pointer passed");
   }
   //  Immediately send this client a header
-  info->client.write(HEADER, hdrLen);
-  info->client.write(BOUNDARY, bdrLen);
+  info->client->write(HEADER, hdrLen);
+  info->client->write(BOUNDARY, bdrLen);
   taskYIELD();
 
   xLastWakeTime = xTaskGetTickCount();
@@ -217,7 +218,7 @@ void streamCB(void * pvParameters) {
 
   for (;;) {
     //  Only bother to send anything if there is someone watching
-    if ( info->client.connected() ) {
+    if ( info->client->connected() ) {
 
       if ( info->frame != frameNumber) {
         xSemaphoreTake( frameSync, portMAX_DELAY );
@@ -236,12 +237,13 @@ void streamCB(void * pvParameters) {
         taskYIELD();
 
         info->frame = frameNumber;
-        info->client.write(CTNTTYPE, cntLen);
+        info->client->write(CTNTTYPE, cntLen);
         sprintf(buf, "%d\r\n\r\n", info->len);
-        info->client.write(buf, strlen(buf));
-        info->client.write((char*) info->buffer, (size_t)info->len);
-        info->client.write(BOUNDARY, bdrLen);
-        info->client.flush();
+        info->client->write(buf, strlen(buf));
+        info->client->write((char*) info->buffer, (size_t)info->len);
+        info->client->write(BOUNDARY, bdrLen);
+        info->client->send();
+        //info->client->flush();
       }
     }
     else {
@@ -249,8 +251,8 @@ void streamCB(void * pvParameters) {
       noActiveClients--;
       Serial.printf("streamCB: Stream Task stack wtrmark  : %d\n", uxTaskGetStackHighWaterMark(info->task));
       Serial.flush();
-      info->client.flush();
-      info->client.stop();
+      //info->client->flush();
+      info->client->stop();
       if ( info->buffer ) {
         free( info->buffer );
         info->buffer = NULL;
@@ -273,28 +275,28 @@ const char JHEADER[] = "HTTP/1.1 200 OK\r\n" \
 const int jhdLen = strlen(JHEADER);
 
 // ==== Serve up one JPEG frame =============================================
-void handleJPG(void)
+void handleJPG(AsyncWebServerRequest *request)
 {
-  WiFiClient client = server.client();
+  AsyncClient *client = request->client();
 
-  if (!client.connected()) return;
+  if (!client->connected()) return;
   camera_fb_t* fb = esp_camera_fb_get();
-  client.write(JHEADER, jhdLen);
-  client.write((char*)fb->buf, fb->len);
+  client->write(JHEADER, jhdLen);
+  client->write((char*)fb->buf, fb->len);
   esp_camera_fb_return(fb);
 }
 
 
 // ==== Handle invalid URL requests ============================================
-void handleNotFound()
+void handleNotFound(AsyncWebServerRequest *request)
 {
   String message = "Server is running!\n\n";
   message += "URI: ";
-  message += server.uri();
+  message += request->url();
   message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += (request->method() == HTTP_GET) ? "GET" : "POST";
   message += "\nArguments: ";
-  message += server.args();
+  message += request->args();
   message += "\n";
-  server.send(200, "text / plain", message);
+  request->send(200, "text / plain", message);
 }
