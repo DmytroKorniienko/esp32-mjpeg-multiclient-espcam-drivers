@@ -18,7 +18,14 @@ void setup()
   delay(1000); // wait for a second to let Serial connect
   Serial.printf("setup: free heap  : %d\n", ESP.getFreeHeap());
 
-  LOG(println,"Проверка тут");
+  create_parameters(); // создаем дефолтные параметры, отсутствующие в текущем загруженном конфиге
+#ifdef USE_FTP
+  ftp_setup(); // запуск ftp-сервера
+#endif
+  //sync_parameters();
+  embui.begin(); // Инициализируем EmbUI фреймворк.
+
+  Serial.println("Проверка тут");
   //embui.mqtt(embui.param(F("m_host")), embui.param(F("m_port")).toInt(), embui.param(F("m_user")), embui.param(F("m_pass")), mqttCallback, true); // false - никакой автоподписки!!!
 
 #if defined(CAMERA_MODEL_AI_THINKER)
@@ -113,6 +120,12 @@ void setup()
   pinMode(14, INPUT_PULLUP);
 #endif
 
+  //  Registering webserver handling routines
+  //embui.server.on("/mjpeg/1", HTTP_GET, handleJPGSstream);
+  embui.server.on("/mjpeg/1", HTTP_GET, streamJpg);
+  embui.server.on("/jpg", HTTP_GET, handleJPG);
+  embui.server.onNotFound(handleNotFound);
+
   if (esp_camera_init(&camera_config) != ESP_OK) {
     Serial.println("Error initializing the camera");
     delay(10000);
@@ -132,18 +145,13 @@ void setup()
     APP_CPU);
 
   Serial.printf("setup complete: free heap  : %d\n", ESP.getFreeHeap());
-
-  embui.init();
-  create_parameters(); // создаем дефолтные параметры, отсутствующие в текущем загруженном конфиге
-#ifdef USE_FTP
-  ftp_setup(); // запуск ftp-сервера
-#endif
-  //sync_parameters();
-  embui.begin(); // Инициализируем EmbUI фреймворк.
 }
 
 void loop() {
-  //embui.handle(); // цикл, необходимый фреймворку
+  embui.handle(); // цикл, необходимый фреймворку (временно)
+#ifdef USE_FTP
+    ftp_loop(); // цикл обработки событий фтп-сервера
+#endif
   // this seems to be necessary to let IDLE task run and do GC
   // vTaskDelay(10000);
   vTaskDelay(10);

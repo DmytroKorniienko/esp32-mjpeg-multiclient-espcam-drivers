@@ -58,6 +58,7 @@ void create_parameters(){
     //embui.section_handle_add(FPSTR(T_004B), set_settings_other);
 }
 
+void block_more(Interface *interf, JsonObject *data);
 
 /**
  * Headlile section
@@ -80,11 +81,23 @@ void section_main_frame(Interface *interf, JsonObject *data){
         //block_demo(interf, data);       // Строим блок с demo переключателями
     }
 
-    //block_more(interf, data);                     // у нас есть и другие блоки, но строить сразу все
+    block_more(interf, data);                     // у нас есть и другие блоки, но строить сразу все
     //block_setup(interf, data);                    // не требуеся. Будем переходить по меню далее
 
     interf->json_frame_flush();
 }
+
+
+void block_more(Interface *interf, JsonObject *data){
+    if (!interf) return;
+
+    interf->json_frame_interface();
+
+    interf->frame("jpg", "jpg");
+
+    interf->json_section_end();
+}
+
 
 /**
  * This code builds UI section with menu block on the left
@@ -97,7 +110,7 @@ void block_menu(Interface *interf, JsonObject *data){
     interf->json_section_menu();
 
     //interf->option(FPSTR(T_DEMO), FPSTR(T_DICT[lang][TD::D_OTHER));
-    //interf->option(FPSTR(T_MORE), FPSTR(T_DICT[lang][TD::D_MORE]));
+    interf->option(FPSTR(T_MORE), FPSTR(T_DICT[lang][TD::D_More]));
     interf->option(FPSTR(T_SETTINGS), FPSTR(T_DICT[lang][TD::D_SETTINGS]));     // пункт меню "настройки"
     interf->json_section_end();
 }
