@@ -55,10 +55,8 @@ void create_parameters(){
     embui.section_handle_add(FPSTR(T_SET_TIME), set_settings_time);
     embui.section_handle_add(FPSTR(T_LANGUAGE), set_language);
 
-    //embui.section_handle_add(FPSTR(T_004B), set_settings_other);
+    embui.section_handle_add(FPSTR(T_MORE), block_more);
 }
-
-void block_more(Interface *interf, JsonObject *data);
 
 /**
  * Headlile section
@@ -90,12 +88,16 @@ void section_main_frame(Interface *interf, JsonObject *data){
 
 void block_more(Interface *interf, JsonObject *data){
     if (!interf) return;
+    LOG(println, "Here");
 
     interf->json_frame_interface();
+    interf->json_section_main(FPSTR(T_MORE), FPSTR(T_DICT[lang][TD::D_More]));
 
-    interf->frame("jpg", "jpg");
+    //interf->frame("jpgframe", "<iframe class=\"iframe\" src=\"jpg\"></iframe>"); // marginheight=\"0\" marginwidth=\"0\" width=\"100%\" height=\"100%\" frameborder=\"0\" scrolling=\"yes\"
+    interf->frame2("jpgframe", "jpg");
 
     interf->json_section_end();
+    interf->json_frame_flush();
 }
 
 

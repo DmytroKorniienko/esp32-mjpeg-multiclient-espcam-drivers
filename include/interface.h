@@ -20,7 +20,7 @@ void set_settings_wifiAP(Interface *interf, JsonObject *data);
 void set_settings_mqtt(Interface *interf, JsonObject *data);
 void set_settings_time(Interface *interf, JsonObject *data);
 void set_language(Interface *interf, JsonObject *data);
-
+void block_more(Interface *interf, JsonObject *data);
 
 //void save_lamp_flags();
 
